@@ -1,0 +1,25 @@
+#!/bin/bash
+
+X="$1"
+Y="$2"
+
+
+if [ -z "$X" ] || [ -z "$Y" ]; then
+    CURSOR_POS=$(hyprctl cursorpos)
+    X=$(echo "$CURSOR_POS" | cut -d',' -f1)
+    Y=$(echo "$CURSOR_POS" | cut -d' ' -f2)
+fi
+
+CURRENT_WS=$(hyprctl activeworkspace -j | jq '.id')
+
+hyprctl clients -j | jq --argjson x "$X" --argjson y "$Y" --argjson ws "$CURRENT_WS" '
+    sort_by(.layer) | reverse |
+    map(select(.workspace.id == $ws)) |
+    first( .[] | select(
+        $x >= .at[0] and
+        $x <= .at[0] + .size[0] and
+        $y >= .at[1] and
+        $y <= .at[1] + .size[1]
+    ) )
+    | { address, title, class, at, size, workspace: .workspace.id }
+'
